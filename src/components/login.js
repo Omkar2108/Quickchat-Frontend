@@ -12,7 +12,7 @@ const Login = () =>{
     useEffect(async () => {
         await Axios().get('/')
         .then((res)=>{
-            console.log(res);
+            // console.log(res);
             if(res.data.auth){
                 window.location.href = '/home';
             }

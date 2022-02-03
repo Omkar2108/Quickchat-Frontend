@@ -1,15 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import Axios from '../axios';
-import io from 'socket.io-client';
-
+import Chatbar from './chatbar';
+import Message from './message';
 
 function Welcome() {
     const userid=localStorage.getItem('email');
     const [users, setUsers] = useState(null);
     const [msg, setMsg] = useState('');
-    const [messages, setMessages] = useState([]);
-    const [socket, setSocket] = useState(null);
-    useEffect(async()=>{
+    const [tomsg, setTomsg]=useState(null);
+    const [logout, setLogout] = useState(false);
+
+    useEffect(()=>{
+
+      if(logout){
+        localStorage.setItem('email', 'logout');
+      }
+      async function data(){
         await Axios().get('/')
         .then((res)=>{
             if(!res.data.auth){
@@ -25,31 +31,26 @@ function Welcome() {
         }).catch((err)=>{
             console.log(err);
         });
-
-        await Axios().get('/getmessages')
-        .then((res)=>{
-            // console.log(res.data);
-            setMessages(res.data);
-            // return res.json();
-        }).catch((err)=>{
-            console.log(err);
-        });
-
-        if(socket===null){
-          const socket =await io('http://localhost:4000');
-          setSocket(socket);
-          const data=await socket.on('getmessages',(data)=>{
-            console.log(data);
-            setMessages(data);
-          });
-          console.log(data);
-        }
-
+      }
+      data();
+      
     },[msg]);
 
     const sendMsg = async() =>{
         if(msg && msg.trim() ==='') return;
-
+        if(tomsg!==null){
+          await Axios().post('/sendpersonalmsg', {
+            to: tomsg,
+            from: userid,
+            msg
+          }).then((res)=>{
+            console.log(res.data);
+          }).catch((err)=>{
+            console.log(err);
+          })
+          setMsg('');
+          return;
+        }
         await Axios().post('/sendmsg', {
             email: userid,
             msg: msg
@@ -100,12 +101,7 @@ function Welcome() {
           <div className="text-sm font-semibold mt-2">{userid}</div>
           <div className="text-xs text-gray-500">Lead UI/UX Designer</div>
           <div className="flex flex-row items-center mt-3">
-            <div
-              className="flex flex-col justify-center h-4 w-8 bg-indigo-500 rounded-full"
-            >
-              <div className="h-3 w-3 bg-white rounded-full self-end mr-1"></div>
-            </div>
-            <div className="leading-none ml-1 text-xs">Active</div>
+            <div className="leading-none ml-1 text-xs" onClick={()=>setLogout(!logout)}>{logout ? "Login":"Logout"}</div>
           </div>
         </div>
         <div className="flex flex-col mt-8">
@@ -117,23 +113,7 @@ function Welcome() {
             >
           </div>
           <div className="flex flex-col space-y-1 mt-4 -mx-2 h-full overflow-y-auto">
-            {
-                users && users.map((user, ind)=>{
-                    if(user.email==userid)return;
-                    return(
-                        <button key={ind}
-                        className="flex flex-row items-center hover:bg-gray-100 rounded-xl p-2"
-                        >
-                            <div
-                                className="flex items-center justify-center h-8 w-8 bg-indigo-200 rounded-full"
-                            >
-                                {user.email.charAt(0).toUpperCase()}
-                            </div>
-                            <div className="ml-2 text-sm font-semibold">{user.email}</div>
-                        </button>       
-                    )
-                })
-            }
+            <Chatbar to={setTomsg} userid={userid} />
           </div>
         </div>
       </div>
@@ -144,43 +124,7 @@ function Welcome() {
           <div className="flex flex-col h-full overflow-x-auto mb-4">
             <div className="flex flex-col h-full">
               <div className="grid grid-cols-12 gap-y-2">                
-                {
-                    messages && messages.map((msg, ind)=>{
-                    if(msg.email!==userid) return(
-                        <div key={ind} className="col-start-1 col-end-8 p-3 rounded-lg">
-                        <div className="flex flex-row items-center">
-                            <div
-                            className="flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0"
-                            >
-                            {msg.email.charAt(0).toUpperCase()}
-                            </div>
-                            <div
-                            className="relative ml-3 text-sm bg-white py-2 px-4 shadow rounded-xl"
-                            >
-                            {msg.message}
-                            </div>
-                        </div>
-                        </div>
-                    );
-                    return(
-                        <div key={ind} className="col-start-6 col-end-13 p-3 rounded-lg">
-                        <div className="flex items-center justify-start flex-row-reverse">
-                            <div
-                            className="flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500 flex-shrink-0"
-                            >
-                            {msg.email.charAt(0).toUpperCase()}
-                            </div>
-                            <div
-                            className="relative mr-3 text-sm bg-indigo-100 py-2 px-4 shadow rounded-xl"
-                            >
-                           {msg.message}
-                            </div>
-                        </div>
-                        </div>
-                    )
-                }) 
-                }
-
+                <Message userid={userid} to={tomsg} msg={msg}/>
               </div>
             </div>
           </div>

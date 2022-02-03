@@ -1,10 +1,23 @@
 import { Button, TextField } from '@material-ui/core';
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import { Link } from 'react-router-dom';
+import Axios from '../axios';
 
 const Signup = () =>{
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    useEffect(async () => {
+        await Axios().get('/')
+        .then((res)=>{
+            // console.log(res);
+            if(res.data.auth){
+                window.location.href = '/home';
+            }
+        }).catch((err)=>{
+            console.log(err);
+        })
+          
+    }, []);
     const handleSignup  = () =>{
         // if(email === '' || password==='') return;
         console.log(email, password);
